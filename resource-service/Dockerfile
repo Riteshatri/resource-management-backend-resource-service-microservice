@@ -55,8 +55,6 @@ EXPOSE 8000
 CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 
-
-
 # docker build -t resource-service .
 
 # docker run -d --name resource-service --env-file .env -p 8003:8000 resource-service
