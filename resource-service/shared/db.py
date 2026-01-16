@@ -84,3 +84,19 @@ def init_db():
         Base.metadata.create_all(bind=engine)
     except Exception as e:
         print(f"⚠️ DB init note (tables may already exist): {type(e).__name__}")
+
+
+
+from sqlalchemy import inspect
+
+def has_column(table_name: str, column_name: str) -> bool:
+    """
+    Safely check if a column exists in DB table.
+    Works for rollback & forward compatibility.
+    """
+    try:
+        inspector = inspect(engine)
+        columns = inspector.get_columns(table_name)
+        return any(col["name"] == column_name for col in columns)
+    except Exception:
+        return False

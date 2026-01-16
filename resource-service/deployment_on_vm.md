@@ -66,9 +66,9 @@ nano .env
 **Add this content:**
 ```env
 # Azure SQL Database
-AZURE_SQL_SERVER=YOUR_SERVER_NAME_HERE.database.windows.net
-AZURE_SQL_DATABASE=YOUR_DATABASE_NAME
-AZURE_SQL_USERNAME=ENTER_YOUR_USERNAME
+AZURE_SQL_SERVER=ritserver.database.windows.net
+AZURE_SQL_DATABASE=ritserver
+AZURE_SQL_USERNAME=ritesh
 AZURE_SQL_PASSWORD=your_password_here
 
 # JWT Configuration
@@ -208,9 +208,9 @@ notepad .env
 **Add this content:**
 ```env
 # Azure SQL Database
-AZURE_SQL_SERVER=YOUR_SERVER_NAME_HERE.database.windows.net
-AZURE_SQL_DATABASE=YOUR_DATABASE_NAME
-AZURE_SQL_USERNAME=ENTER_YOUR_USERNAME
+AZURE_SQL_SERVER=ritserver.database.windows.net
+AZURE_SQL_DATABASE=ritserver
+AZURE_SQL_USERNAME=ritesh
 AZURE_SQL_PASSWORD=your_password_here
 
 # JWT Configuration
