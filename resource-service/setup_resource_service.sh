@@ -4,7 +4,7 @@ set -e
 # ===============================
 # VARIABLES
 # ===============================
-VM_USER="ubuntu"
+VM_USER="ritesh"
 APP_NAME="resource-service"
 APP_DIR="/home/$VM_USER/resource-service"
 VENV_DIR="$APP_DIR/venv"
