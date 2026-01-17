@@ -2,7 +2,7 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from fastapi import FastAPI, Depends, HTTPException, status, Header
+from fastapi import FastAPI, Depends, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -11,31 +11,16 @@ from datetime import datetime
 
 from app.db import get_db, init_db, Resource, User, UserRole
 from shared.security import decode_access_token
-from shared.db import has_column
 
 # =====================================================
-# APP VERSION (VERSION-3)
+# APP VERSION
 # =====================================================
-APP_VERSION = "v3"
-
-PRIORITY_ENABLED_BY_VERSION = {
-    "v1": False,
-    "v2": False,
-    "v3": True,
-    "v4": False,
-    "v5": True,
-}
-
-def can_use_priority() -> bool:
-    return (
-        PRIORITY_ENABLED_BY_VERSION.get(APP_VERSION, False)
-        and has_column("resources", "priority")
-    )
+APP_VERSION = "v4"
 
 # =====================================================
 # FASTAPI SETUP
 # =====================================================
-app = FastAPI(title="Resource Service - v3")
+app = FastAPI(title="Resource Service - v4")
 
 app.add_middleware(
     CORSMiddleware,
@@ -86,13 +71,6 @@ class TemplateResponse(BaseModel):
     region: str
 
 
-# =====================================================
-# TEMPLATES (70+ Azure Resources)
-# =====================================================
-# 👉 SAME TEMPLATES LIST JO TUMNE BHEJI HAI
-# 👉 YAHAN KUCH DELETE NAHI KARNA
-# from .templates import TEMPLATES   # (agar alag file hai)
-# ya agar same file me hai to direct TEMPLATES list rehne do
 
 
 # Comprehensive 70+ Azure Infrastructure & Services Templates
@@ -194,6 +172,8 @@ TEMPLATES = [
     {"id": 70, "title": "Spot Instances", "resource_name": "spot-prod", "description": "Discounted compute capacity", "icon": "server", "status": "Running", "region": "East US"},
 ]
 
+
+
 # =====================================================
 # AUTH HELPER
 # =====================================================
@@ -227,7 +207,7 @@ async def startup():
 # =====================================================
 @app.get("/health")
 def health():
-    return {"status": "Resource Service v3 OK"}
+    return {"status": "Resource Service v4 OK"}
 
 # =====================================================
 # LIST RESOURCES
@@ -279,6 +259,7 @@ async def import_templates(
             priority="Medium",
             created_at=datetime.utcnow()
         )
+
         db.add(resource)
         imported.append(template["title"])
 
@@ -312,6 +293,7 @@ async def create_resource(
     db.add(resource)
     db.commit()
     db.refresh(resource)
+
     return ResourceResponse.from_orm(resource)
 
 # =====================================================
@@ -337,10 +319,11 @@ async def update_resource(
     resource.icon = data.icon
     resource.status = data.status
     resource.region = data.region
-    resource.priority = data.priority or "Medium"
+    resource.priority = data.priority or resource.priority
 
     db.commit()
     db.refresh(resource)
+
     return ResourceResponse.from_orm(resource)
 
 # =====================================================
