@@ -1,38 +1,19 @@
-import sys
-import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-from fastapi import FastAPI, Depends, HTTPException, Header
+from fastapi import FastAPI, Depends, HTTPException, status, Header
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from app.db import get_db, init_db, Resource, User, UserRole
 from shared.security import decode_access_token
 
-# =====================================================
-# APP VERSION
-# =====================================================
-APP_VERSION = "v4"
+app = FastAPI(title="Resource Service")
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
-# =====================================================
-# FASTAPI SETUP
-# =====================================================
-app = FastAPI(title="Resource Service - v4")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# =====================================================
-# Pydantic Models
-# =====================================================
 class ResourceCreate(BaseModel):
     title: str
     resource_name: str
@@ -40,26 +21,28 @@ class ResourceCreate(BaseModel):
     icon: str
     status: str = "Running"
     region: str = "East US"
-    priority: Optional[str] = "Medium"
+    priority: str = "Medium"
     created_at: Optional[datetime] = None
-
 
 class ResourceResponse(BaseModel):
     id: int
-    user_id: str
+    user_id: int
     icon: str
     title: str
     resource_name: str
     description: Optional[str]
     status: str
     region: str
-    priority: Optional[str]
+    priority: Optional[str] = "Medium"
     created_at: datetime
     updated_at: datetime
-
+    
+    @property
+    def priority_value(self) -> str:
+        return self.priority or "Medium"
+    
     class Config:
         from_attributes = True
-
 
 class TemplateResponse(BaseModel):
     id: int
@@ -69,9 +52,6 @@ class TemplateResponse(BaseModel):
     icon: str
     status: str
     region: str
-
-
-
 
 # Comprehensive 70+ Azure Infrastructure & Services Templates
 TEMPLATES = [
@@ -172,175 +152,120 @@ TEMPLATES = [
     {"id": 70, "title": "Spot Instances", "resource_name": "spot-prod", "description": "Discounted compute capacity", "icon": "server", "status": "Running", "region": "East US"},
 ]
 
-
-
-# =====================================================
-# AUTH HELPER
-# =====================================================
-def get_current_user(
-    authorization: Optional[str] = Header(None),
-    db: Session = Depends(get_db)
-):
+def get_current_user(authorization: Optional[str] = Header(None), db: Session = Depends(get_db)):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing authorization header")
-
+    
     token = authorization[7:]
     email = decode_access_token(token)
     if not email:
         raise HTTPException(status_code=401, detail="Invalid token")
-
+    
     user = db.query(User).filter(User.email == email).first()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
-
+    
     return user
 
-# =====================================================
-# STARTUP
-# =====================================================
 @app.on_event("startup")
 async def startup():
     init_db()
 
-# =====================================================
-# HEALTH
-# =====================================================
 @app.get("/health")
 def health():
-    return {"status": "Resource Service v4 OK"}
+    return {"status": "Resource Service OK"}
 
-# =====================================================
-# LIST RESOURCES
-# =====================================================
 @app.get("/api/resources/", response_model=List[ResourceResponse])
-async def list_resources(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
+async def list_resources(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Fetch all resources for now to confirm visibility
     resources = db.query(Resource).all()
     return [ResourceResponse.from_orm(r) for r in resources]
 
-# =====================================================
-# GET TEMPLATES
-# =====================================================
 @app.get("/api/resources/templates", response_model=List[TemplateResponse])
-async def get_templates(
-    current_user: User = Depends(get_current_user)
-):
+async def get_templates(current_user: User = Depends(get_current_user)):
+    """Get all 70 available Azure infrastructure & services templates"""
     return TEMPLATES
 
-# =====================================================
-# IMPORT TEMPLATES
-# =====================================================
 @app.post("/api/resources/import-templates")
-async def import_templates(
-    template_ids: List[int],
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    if current_user.role != UserRole.admin:
+async def import_templates(template_ids: List[int], current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Import selected templates as new resources"""
+    if current_user.role.value != UserRole.admin.value:
         raise HTTPException(status_code=403, detail="Only admins can import templates")
-
+    
     imported = []
-
     for tid in template_ids:
         template = next((t for t in TEMPLATES if t["id"] == tid), None)
         if not template:
             continue
-
+        
         resource = Resource(
-            user_id=str(current_user.id),
+            user_id=current_user.id,
             title=template["title"],
             resource_name=template["resource_name"],
             description=template["description"],
             icon=template["icon"],
             status=template["status"],
             region=template["region"],
-            priority="Medium",
+            priority=template.get("priority", "Medium"),
             created_at=datetime.utcnow()
         )
-
         db.add(resource)
         imported.append(template["title"])
-
+    
     db.commit()
     return {"message": f"Imported {len(imported)} templates", "imported": imported}
 
-# =====================================================
-# CREATE RESOURCE
-# =====================================================
-@app.post("/api/resources/", response_model=ResourceResponse, status_code=201)
-async def create_resource(
-    data: ResourceCreate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    if current_user.role != UserRole.admin:
+@app.post("/api/resources/", response_model=ResourceResponse, status_code=status.HTTP_201_CREATED)
+async def create_resource(data: ResourceCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user.role.value != UserRole.admin.value:
         raise HTTPException(status_code=403, detail="Only admins can create resources")
-
+    
     resource = Resource(
-        user_id=str(current_user.id),
+        user_id=current_user.id,
         title=data.title,
         resource_name=data.resource_name,
         description=data.description,
         icon=data.icon,
         status=data.status,
         region=data.region,
-        priority=data.priority or "Medium",
+        priority=data.priority,
         created_at=data.created_at or datetime.utcnow()
     )
-
     db.add(resource)
     db.commit()
     db.refresh(resource)
-
     return ResourceResponse.from_orm(resource)
 
-# =====================================================
-# UPDATE RESOURCE
-# =====================================================
 @app.put("/api/resources/{resource_id}", response_model=ResourceResponse)
-async def update_resource(
-    resource_id: int,
-    data: ResourceCreate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    if current_user.role != UserRole.admin:
+async def update_resource(resource_id: int, data: ResourceCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user.role.value != UserRole.admin.value:
         raise HTTPException(status_code=403, detail="Only admins can update resources")
-
+    
     resource = db.query(Resource).filter(Resource.id == resource_id).first()
     if not resource:
         raise HTTPException(status_code=404, detail="Resource not found")
-
-    resource.title = data.title
-    resource.resource_name = data.resource_name
-    resource.description = data.description
-    resource.icon = data.icon
-    resource.status = data.status
-    resource.region = data.region
-    resource.priority = data.priority or resource.priority
-
+    
+    # Use setattr or update properties directly carefully if using SQLAlchemy
+    resource.title = str(data.title)
+    resource.resource_name = str(data.resource_name)
+    resource.description = str(data.description)
+    resource.icon = str(data.icon)
+    resource.status = str(data.status)
+    resource.region = str(data.region)
+    resource.priority = str(data.priority) if data.priority else "Medium"
+    
     db.commit()
     db.refresh(resource)
-
     return ResourceResponse.from_orm(resource)
 
-# =====================================================
-# DELETE RESOURCE
-# =====================================================
-@app.delete("/api/resources/{resource_id}", status_code=204)
-async def delete_resource(
-    resource_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    if current_user.role != UserRole.admin:
+@app.delete("/api/resources/{resource_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_resource(resource_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user.role.value != UserRole.admin.value:
         raise HTTPException(status_code=403, detail="Only admins can delete resources")
-
+    
     resource = db.query(Resource).filter(Resource.id == resource_id).first()
     if not resource:
         raise HTTPException(status_code=404, detail="Resource not found")
-
+    
     db.delete(resource)
     db.commit()

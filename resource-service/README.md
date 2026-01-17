@@ -25,7 +25,15 @@ resource-service/
 | `AZURE_SQL_DATABASE` | Database name | Yes |
 | `AZURE_SQL_USERNAME` | Database username | Yes |
 | `AZURE_SQL_PASSWORD` | Database password | Yes |
-| `SECRET_KEY` | JWT signing key (same as Auth Service) | Yes |
+| `SECRET_KEY` | JWT signing key | Yes |
+
+### How to Generate a Secure SECRET_KEY
+1. **Python (Windows/Linux):** `python -c "import secrets; print(secrets.token_hex(32))"`
+2. **Python 3 (Linux/Mac):** `python3 -c "import secrets; print(secrets.token_hex(32))"`
+3. **OpenSSL:** `openssl rand -hex 32`
+4. **Node.js:** `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+5. **PowerShell (Option A):** `[Convert]::ToHexString((1..32 | ForEach-Object { [byte](Get-Random -Minimum 0 -Maximum 256) }))`
+6. **PowerShell (Option B):** `-join ((1..32 | ForEach-Object { Get-Random -Min 0 -Max 256 }) | ForEach-Object { '{0:X2}' -f $_ })`
 
 ## API Endpoints
 
@@ -67,6 +75,7 @@ docker run -d \
 
 ```bash
 pip install -r requirements.txt
+pip install email-validator==2.1.0
 
 export AZURE_SQL_SERVER=your-server.database.windows.net
 export AZURE_SQL_DATABASE=your-database

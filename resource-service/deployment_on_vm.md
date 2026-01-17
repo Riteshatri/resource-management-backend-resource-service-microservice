@@ -1,6 +1,6 @@
 # Resource Service - Deployment on Ubuntu VM
 
-> **Resource Management Service** | Port 8003 | CRUD operations for resources and templates
+> **Resource Management Service** | Port 8003 | CRUD operations for resources
 
 ---
 
@@ -73,10 +73,11 @@ AZURE_SQL_PASSWORD=your_password_here
 
 # JWT Configuration
 SECRET_KEY=your-super-secret-key-change-this
-# To generate a new key:
-# python3 -c "import secrets; print(secrets.token_hex(32))"
+# To generate a new key, run one of these:
+# Windows (Python): python -c "import secrets; print(secrets.token_hex(32))"
+# Linux/Mac (Python 3): python3 -c "import secrets; print(secrets.token_hex(32))"
+# PowerShell: -join ((1..32 | ForEach-Object { Get-Random -Min 0 -Max 256 }) | ForEach-Object { '{0:X2}' -f $_ })
 ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
 
 **Save:** `Ctrl+S` then `Ctrl+X`
@@ -94,6 +95,7 @@ python -m uvicorn app.main:app --host 0.0.0.0 --port 8003 --env-file .env
 ```
 Using AZURE SQL database: ritserver.database.windows.net/ritserver
 INFO:     Uvicorn running on http://0.0.0.0:8003 (Press CTRL+C to quit)
+INFO:     Started server process
 INFO:     Application startup complete.
 ```
 
@@ -101,7 +103,7 @@ INFO:     Application startup complete.
 ```bash
 # In another terminal
 curl http://localhost:8003/health
-# Should return: {"status":"healthy","service":"resource-service","version":"4.0.0"}
+# Should return: {"status":"healthy"}
 ```
 
 If working, press `Ctrl+C` to stop.
@@ -180,7 +182,7 @@ sudo ufw status
 
 ```bash
 curl http://YOUR-BACKEND-VM-IP:8003/health
-# Should return: {"status":"healthy","service":"resource-service","version":"4.0.0"}
+# Should return: {"status":"healthy"}
 ```
 
 **Resource Service Deployment Complete!**
@@ -213,10 +215,11 @@ AZURE_SQL_PASSWORD=your_password_here
 
 # JWT Configuration
 SECRET_KEY=your-super-secret-key-change-this
-# To generate a new key:
-# python3 -c "import secrets; print(secrets.token_hex(32))"
+# To generate a new key, run one of these:
+# Windows (Python): python -c "import secrets; print(secrets.token_hex(32))"
+# Linux/Mac (Python 3): python3 -c "import secrets; print(secrets.token_hex(32))"
+# PowerShell: -join ((1..32 | ForEach-Object { Get-Random -Min 0 -Max 256 }) | ForEach-Object { '{0:X2}' -f $_ })
 ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
 
 **Save and close.**
@@ -232,9 +235,6 @@ scp -r "E:\path\to\resource-service" user@vm-ip:"~/"
 
 ```bash
 ssh user@your-backend-vm-ip
-
-# Example:
-# ssh ritesh@20.123.45.67
 ```
 
 ### Step 5: Install System Dependencies
@@ -243,8 +243,8 @@ ssh user@your-backend-vm-ip
 # Update package list
 sudo apt update
 
-# Install required packages (Python 3.12 comes with Ubuntu 24.04)
-sudo apt install -y build-essential python3.12 python3.12-venv python3-pip freetds-dev freetds-bin
+# Install required packages
+sudo apt install -y build-essential python3 python3-venv python3-pip freetds-dev freetds-bin
 
 # Verify Python version
 python3 --version
@@ -272,6 +272,7 @@ source venv/bin/activate
 # Make sure (venv) is active!
 pip install --upgrade pip
 pip install -r requirements.txt
+# pip install fastapi uvicorn sqlalchemy pymssql python-jose[cryptography] pydantic pydantic-settings python-dotenv gunicorn
 ```
 
 ### Step 8: Test Resource Service Manually
@@ -286,27 +287,26 @@ python -m uvicorn app.main:app --host 0.0.0.0 --port 8003 --env-file .env
 **Expected Output:**
 ```
 Using AZURE SQL database: ritserver.database.windows.net/ritserver
-INFO:     Uvicorn running on http://0.0.0.0:8003 (Press CTRL+C to quit)
-INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8003
 ```
 
 **Test it:**
 ```bash
 # In another terminal
 curl http://localhost:8003/health
-# Should return: {"status":"healthy","service":"resource-service","version":"4.0.0"}
+# Should return: {"status":"healthy"}
 ```
 
 If working, press `Ctrl+C` to stop.
 
-### Step 9: Install Gunicorn
+### Step 8-B : Install Gunicorn
 
 ```bash
 source venv/bin/activate
 pip install gunicorn
 ```
 
-### Step 10: Create Systemd Service
+### Step 9: Create Systemd Service
 
 ```bash
 sudo nano /etc/systemd/system/resource-service.service
@@ -336,7 +336,7 @@ WantedBy=multi-user.target
 
 **Save:** `Ctrl+S` then `Ctrl+X`
 
-### Step 11: Start and Enable Service
+### Step 10: Start and Enable Service
 
 ```bash
 # Reload systemd
@@ -359,7 +359,7 @@ sudo systemctl status resource-service
    Active: active (running) since ...
 ```
 
-### Step 12: Configure Firewall
+### Step 11: Configure Firewall
 
 ```bash
 # Allow port 8003
@@ -369,43 +369,14 @@ sudo ufw allow 8003/tcp
 sudo ufw status
 ```
 
-### Step 13: Test External Access
+### Step 12: Test External Access
 
 ```bash
 curl http://YOUR-BACKEND-VM-IP:8003/health
-# Should return: {"status":"healthy","service":"resource-service","version":"4.0.0"}
+# Should return: {"status":"healthy"}
 ```
 
 **Resource Service Deployment Complete!**
-
----
-
-## Method 3: Docker Deployment
-
-### Step 1: Build Docker Image
-
-```bash
-cd resource-service
-docker build -t resource-service:4.0.0 .
-```
-
-### Step 2: Run Container
-
-```bash
-docker run -d \
-  --name resource-service \
-  --env-file .env \
-  -p 8003:8000 \
-  --network microservices-network \
-  resource-service:4.0.0
-```
-
-### Step 3: Verify
-
-```bash
-docker logs resource-service
-curl http://localhost:8003/health
-```
 
 ---
 
@@ -421,6 +392,15 @@ curl http://localhost:8003/health
 | `/api/resources/{id}` | DELETE | Delete resource |
 | `/api/resources/templates` | GET | Get resource templates |
 | `/api/resources/import-templates` | POST | Import templates |
+
+---
+
+## Resource Priority
+
+Resources have priority levels:
+- **High** - Red badge
+- **Medium** - Amber badge (default)
+- **Low** - Green badge
 
 ---
 
@@ -457,4 +437,4 @@ Access API docs at: `http://YOUR-VM-IP:8003/docs`
 
 ---
 
-**Resource Service v4.0.0** | Port 8003
+**Resource Service v5.0.0** | Port 8003

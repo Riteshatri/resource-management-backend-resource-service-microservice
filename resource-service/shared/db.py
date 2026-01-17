@@ -83,20 +83,19 @@ def get_db():
 def init_db():
     try:
         Base.metadata.create_all(bind=engine)
+        sync_schema()
     except Exception as e:
         print(f"⚠️ DB init note (tables may already exist): {type(e).__name__}")
 
-from sqlalchemy import inspect
-
-def has_column(table_name: str, column_name: str) -> bool:
-    """
-    Safely check whether a column exists in a table.
-    Used for backward/forward DB compatibility across versions.
-    """
+def sync_schema():
+    """Ensure all columns exist in the database (Automatic Migration)"""
+    from sqlalchemy import text
+    db = SessionLocal()
     try:
-        inspector = inspect(engine)
-        columns = inspector.get_columns(table_name)
-        return any(col["name"] == column_name for col in columns)
+        # Check and add 'priority' to resources
+        db.execute(text("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('resources') AND name = 'priority') BEGIN ALTER TABLE resources ADD priority VARCHAR(20) DEFAULT 'Medium'; END"))
+        db.commit()
     except Exception as e:
-        print(f"⚠️ has_column check failed: {e}")
-        return False
+        print(f"⚠️ Auto-sync note: {e}")
+    finally:
+        db.close()
