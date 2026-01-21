@@ -1,0 +1,131 @@
+# =========================================================
+# Workflow: Build & Push Backend Resource-Service Images
+# =========================================================
+# Ye workflow:
+# - versions.env se branch=tag mapping read karega
+# - Har Version-* branch checkout karega
+# - resource-service/Dockerfile se image build karega
+# - Azure Container Registry (ACR) me image push karega
+# - Same tag pehle se ho to old image ko archive karega
+# - Azure login OIDC (Federated Identity) se hoga
+# =========================================================
+
+name: Build & Push Backend Resource-Service Images
+
+# ---------------------------------------------------------
+# Manual trigger
+# ---------------------------------------------------------
+on:
+  workflow_dispatch:
+
+# ---------------------------------------------------------
+# GitHub permissions (OIDC ke liye REQUIRED)
+# ---------------------------------------------------------
+permissions:
+  id-token: write      # GitHub → Azure OIDC token
+  contents: read       # Repo checkout
+
+# ---------------------------------------------------------
+# Global variables (GitHub Repository Variables)
+# ---------------------------------------------------------
+env:
+  ACR_NAME: ${{ vars.ACR_NAME }}                     # e.g. riteshacr
+  ACR_LOGIN_SERVER: ${{ vars.ACR_LOGIN_SERVER }}     # e.g. riteshacr.azurecr.io
+  IMAGE_NAME: ${{ vars.IMAGE_NAME }}                 # e.g. resource-service
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    # =====================================================
+    # STEP 1: Checkout ALL branches
+    # =====================================================
+    - name: Checkout repo (all branches)
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    # =====================================================
+    # STEP 2: Azure Login using OIDC (NO secrets)
+    # =====================================================
+    - name: Azure Login (OIDC)
+      uses: azure/login@v1
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    # =====================================================
+    # STEP 3: Login to Azure Container Registry
+    # =====================================================
+    - name: Login to ACR
+      run: |
+        az acr login --name $ACR_NAME
+
+    # =====================================================
+    # STEP 4: Build & Push Docker Images
+    # =====================================================
+    - name: Build & Push Images (safe tagging)
+      run: |
+        set -e
+
+        # versions.env ko read karo
+        while IFS='=' read -r BRANCH TAG; do
+
+          # Blank lines aur comments skip karo
+          [[ -z "$BRANCH" || "$BRANCH" =~ ^# ]] && continue
+
+          echo "=========================================="
+          echo "Branch : $BRANCH"
+          echo "Tag    : $TAG"
+          echo "=========================================="
+
+          # -----------------------------------------
+          # Checkout version branch
+          # -----------------------------------------
+          git checkout $BRANCH
+
+          REPO=$IMAGE_NAME
+          FULL_IMAGE=$ACR_LOGIN_SERVER/$IMAGE_NAME
+
+          # -----------------------------------------
+          # Check: tag pehle se ACR me hai ya nahi
+          # -----------------------------------------
+          TAG_EXISTS=$(az acr repository show-tags \
+            --name $ACR_NAME \
+            --repository $REPO \
+            --query "[?@=='$TAG']" \
+            -o tsv || true)
+
+          # -----------------------------------------
+          # Agar tag exist karta hai → old image archive karo
+          # -----------------------------------------
+          if [ -n "$TAG_EXISTS" ]; then
+            ARCHIVE_TAG="${TAG}-prev-$(date +%Y%m%d%H%M)"
+            echo "🔁 Archiving old image: $TAG → $ARCHIVE_TAG"
+
+            docker pull $FULL_IMAGE:$TAG
+            docker tag  $FULL_IMAGE:$TAG $FULL_IMAGE:$ARCHIVE_TAG
+            docker push $FULL_IMAGE:$ARCHIVE_TAG
+          else
+            echo "🆕 First time push for tag $TAG"
+          fi
+
+          # -----------------------------------------
+          # Docker build
+          # (Dockerfile resource-service/ ke andar hai)
+          # -----------------------------------------
+          cd resource-service
+          docker build -t $FULL_IMAGE:$TAG .
+          cd ..
+
+          # -----------------------------------------
+          # Push new image to ACR
+          # -----------------------------------------
+          docker push $FULL_IMAGE:$TAG
+
+          echo "✅ Completed for $TAG"
+          echo ""
+
+        done < versions.env
