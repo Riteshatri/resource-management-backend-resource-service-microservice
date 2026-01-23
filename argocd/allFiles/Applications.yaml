@@ -4,7 +4,8 @@ metadata:
   name: resource-app
   namespace: argocd
 spec:
-  project: default
+  # project: default
+  project: resource-project
   source:
     repoURL: https://github.com/Riteshatri/resource-management-backend-resource-service-microservice
     targetRevision: main
