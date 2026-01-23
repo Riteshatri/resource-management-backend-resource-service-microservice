@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: resource-mgmt
+data:
+  AZURE_SQL_SERVER: ritserver.database.windows.net
+  AZURE_SQL_DATABASE: ritserver
+  AZURE_SQL_USERNAME: ritserver
+
+  GMAIL_USER: kridhaatri@gmail.com
+
+  ALGORITHM: HS256
+  ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+
+# kubectl apply -f .\ConfigMap.yaml

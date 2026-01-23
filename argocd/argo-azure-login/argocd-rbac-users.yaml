@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-rbac-cm
+  namespace: argocd
+
+data:
+  policy.default: role:readonly
+
+  policy.csv: |
+    # Readonly role permissions
+    p, role:readonly, applications, list, */*, allow
+    p, role:readonly, applications, get, */*, allow
+
+    # Azure AD Readonly Group mapping
+    g, <AZURE_AD_READONLY_GROUP_OBJECT_ID>, role:readonly
+
+
+# Replace this only:
+# <AZURE_AD_READONLY_GROUP_OBJECT_ID>
+
+# APPLY COMMANDS
+# kubectl apply -f argocd-rbac-users.yaml
+# kubectl rollout restart deployment argocd-server -n argocd

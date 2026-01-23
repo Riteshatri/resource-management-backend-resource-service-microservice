@@ -1,0 +1,107 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-cm
+    app.kubernetes.io/part-of: argocd
+
+data:
+  resource.customizations.ignoreResourceUpdates.ConfigMap: |
+    jqPathExpressions:
+      - '.metadata.annotations."cluster-autoscaler.kubernetes.io/last-updated"'
+      - '.metadata.annotations."control-plane.alpha.kubernetes.io/leader"'
+
+  resource.customizations.ignoreResourceUpdates.Endpoints: |
+    jsonPointers:
+      - /metadata
+      - /subsets
+
+  resource.customizations.ignoreResourceUpdates.all: |
+    jsonPointers:
+      - /status
+
+  resource.customizations.ignoreResourceUpdates.apps_ReplicaSet: |
+    jqPathExpressions:
+      - '.metadata.annotations."deployment.kubernetes.io/desired-replicas"'
+      - '.metadata.annotations."deployment.kubernetes.io/max-replicas"'
+      - '.metadata.annotations."rollout.argoproj.io/desired-replicas"'
+
+  resource.customizations.ignoreResourceUpdates.argoproj.io_Application: |
+    jqPathExpressions:
+      - '.metadata.annotations."notified.notifications.argoproj.io"'
+      - '.metadata.annotations."argocd.argoproj.io/refresh"'
+      - '.metadata.annotations."argocd.argoproj.io/hydrate"'
+      - '.operation'
+
+  resource.customizations.ignoreResourceUpdates.argoproj.io_Rollout: |
+    jqPathExpressions:
+      - '.metadata.annotations."notified.notifications.argoproj.io"'
+
+  resource.customizations.ignoreResourceUpdates.autoscaling_HorizontalPodAutoscaler: |
+    jqPathExpressions:
+      - '.metadata.annotations."autoscaling.alpha.kubernetes.io/behavior"'
+      - '.metadata.annotations."autoscaling.alpha.kubernetes.io/conditions"'
+      - '.metadata.annotations."autoscaling.alpha.kubernetes.io/metrics"'
+      - '.metadata.annotations."autoscaling.alpha.kubernetes.io/current-metrics"'
+
+  resource.customizations.ignoreResourceUpdates.discovery.k8s.io_EndpointSlice: |
+    jsonPointers:
+      - /metadata
+      - /endpoints
+      - /ports
+
+  resource.exclusions: |
+    - apiGroups:
+      - ''
+      - discovery.k8s.io
+      kinds:
+      - Endpoints
+      - EndpointSlice
+    - apiGroups:
+      - coordination.k8s.io
+      kinds:
+      - Lease
+
+
+  url: https://20.82.217.189/
+
+  oidc.config: |
+    name: Azure
+    issuer: https://login.microsoftonline.com/7c4bffa5-85ff-4a10-9709-414c7a85aa1f/v2.0
+    clientID: 85228b9d-643a-497e-ba48-c252df462b20
+    clientSecret: f_M8Q~fyibdptb0WDnztYNGU_633vPvDlO~qza4f
+    requestedScopes:
+      - openid
+      - profile
+      - email
+    requestedIDTokenClaims:
+      groups:
+        essential: true
+
+
+# Apply ConfigMap
+# kubectl apply -f argocd-cm.yaml
+# Expected output:
+# configmap/argocd-cm configured
+
+# Restart Argo CD Components
+# kubectl rollout restart deployment argocd-server -n argocd
+# kubectl rollout restart deployment argocd-dex-server -n argocd
+# Wait 1-2 minutes.
+
+# Verify Configuration
+# kubectl get cm argocd-cm -n argocd -o yaml
+# Confirm:
+# url is correct
+# oidc.config is present
+
+
+# Login Test
+# Open Argo CD UI:
+# https://20.82.217.189/
+# You should see:
+# 👉 Login with Azure
+# Login using Azure AD credentials
+# ✅ Successful login confirms SSO is working

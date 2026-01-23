@@ -1,0 +1,26 @@
+Display name		    :	argocd-aks
+Application (client) ID	:	85228b9d-643a-497e-ba48-c252df462b20
+Object ID		        :	b91f47f2-b578-45d5-bdfe-48d7111b5167
+Directory (tenant) ID	:	7c4bffa5-85ff-4a10-9709-414c7a85aa1f
+Secret Value		    :	f_M8Q~fyibdptb0WDnztYNGU_633vPvDlO~qza4f
+
+Group
+argocd-admins
+Object ID		        :	cc3a7c7f-43a3-4b69-9bde-5b1acc561ee3
+
+
+data:
+  url: https://20.82.217.189/
+
+  oidc.config: |
+    name: Azure
+    issuer: https://login.microsoftonline.com/7c4bffa5-85ff-4a10-9709-414c7a85aa1f/v2.0
+    clientID: 85228b9d-643a-497e-ba48-c252df462b20
+    clientSecret: f_M8Q~fyibdptb0WDnztYNGU_633vPvDlO~qza4f
+    requestedScopes:
+      - openid
+      - profile
+      - email
+    requestedIDTokenClaims:
+      groups:
+        essential: true
