@@ -1,0 +1,53 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: resource-project
+  namespace: argocd
+spec:
+  description: Resource service applications
+  sourceRepos:
+    # - '*'
+    - https://github.com/riteshatri/*
+    # - https://github.com/Riteshatri/resource-management-backend-resource-service-microservice
+  destinations:
+    - namespace: resource-mgmt
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+
+# kubectl apply -f resource-project.yaml
+# kubectl get appprojects -n argocd
+# kubectl describe appproject resource-project -n argocd
+# kubectl get applications -n argocd
+# kubectl describe application resource-app -n argocd
+# kubectl get pods -n resource-mgmt
+# kubectl get svc -n resource-mgmt
+# kubectl rollout restart deploy/resource -n resource-mgmt
+# kubectl delete application resource-app -n argocd
+# kubectl delete appproject resource-project -n argocd
+# kubectl delete all --all -n resource-mgmt
+# kubectl delete ns resource-mgmt
+# kubectl delete ns argocd
+# kubectl get all -n argocd
+# kubectl get all -n resource-mgmt
+# kubectl logs -n argocd deploy/argocd-server
+# kubectl logs -n argocd deploy/argocd-repo-server
+# kubectl logs -n argocd deploy/argocd-application-controller
+# kubectl logs -n argocd deploy/argocd-dex-server
+# kubectl describe pod -n argocd <POD_NAME>
+# kubectl describe pod -n resource-mgmt <POD_NAME>
+# kubectl get events -n resource-mgmt
+# kubectl get events -n argocd
+# kubectl get cm -n argocd
+# kubectl describe cm argocd-cm -n argocd
+# kubectl describe cm argocd-rbac-cm -n argocd
+# kubectl edit cm argocd-rbac-cm -n argocd
+# kubectl get deploy -n argocd
+# kubectl get deploy -n resource-mgmt
+# kubectl get svc -n argocd
+# kubectl get ingress -n argocd
+# kubectl get cm argocd-cm -n argocd -o yaml
+# kubectl get cm argocd-rbac-cm -n argocd -o yaml
+# kubectl get secret argocd-secret -n argocd -o yaml
+# kubectl get secret argocd-dex-server -n argocd -o yaml

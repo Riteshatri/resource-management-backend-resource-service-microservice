@@ -1,0 +1,38 @@
+replicaCount: 2
+
+image:
+  repository: riteshacr.azurecr.io/resource-service
+  tag: "v5"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8000
+  targetPort: 8000
+
+resources:
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+  requests:
+    cpu: "200m"
+    memory: "256Mi"
+
+configMap:
+  enabled: true
+  data:
+    AZURE_SQL_SERVER: ritserver.database.windows.net
+    AZURE_SQL_DATABASE: ritserver
+    AZURE_SQL_USERNAME: ritserver
+
+    GMAIL_USER: kridhaatri@gmail.com
+
+    ALGORITHM: HS256
+    ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+
+secret:
+  enabled: true
+  data:
+    AZURE_SQL_PASSWORD: Ritesh@12345
+    SECRET_KEY: 00bfd5fadea7a8bcde64453b989e2f58a5f3718db3fb67e84e25aca777fab008
+    GMAIL_APP_PASSWORD: vkqskadounrfxjdg

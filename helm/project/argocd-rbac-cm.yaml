@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-rbac-cm
+  namespace: argocd
+data:
+  policy.default: role:readonly
+
+  policy.csv: |
+    #################################
+    # FRONTEND GROUP
+    #################################
+    p, role:frontend, applications, get, frontend-project/*, allow
+    p, role:frontend, applications, sync, frontend-project/*, allow
+
+    #################################
+    # GATEWAY GROUP
+    #################################
+    p, role:gateway, applications, get, gateway-project/*, allow
+    p, role:gateway, applications, sync, gateway-project/*, allow
+
+    #################################
+    # AUTH GROUP
+    #################################
+    p, role:auth, applications, get, auth-project/*, allow
+    p, role:auth, applications, sync, auth-project/*, allow
+
+    #################################
+    # RESOURCE GROUP
+    #################################
+    p, role:resource, applications, get, resource-project/*, allow
+    p, role:resource, applications, sync, resource-project/*, allow
+
+    #################################
+    # THEME GROUP
+    #################################
+    p, role:theme, applications, get, theme-project/*, allow
+    p, role:theme, applications, sync, theme-project/*, allow
+
+    #################################
+    # NOTIFICATION GROUP
+    #################################
+    p, role:notification, applications, get, notification-project/*, allow
+    p, role:notification, applications, sync, notification-project/*, allow
+
+    #################################
+    # ADMIN GROUP
+    #################################
+    p, role:admin, applications, *, */*, allow
+    p, role:admin, clusters, *, *, allow
+    p, role:admin, repositories, *, *, allow
+    p, role:admin, projects, *, *, allow
+
+    #################################
+    # AZURE AD GROUP MAPPINGS
+    #################################
+    g, <AAD_FRONTEND_GROUP_ID>, role:frontend
+    g, <AAD_GATEWAY_GROUP_ID>, role:gateway
+    g, <AAD_AUTH_GROUP_ID>, role:auth
+    g, <AAD_RESOURCE_GROUP_ID>, role:resource
+    g, <AAD_THEME_GROUP_ID>, role:theme
+    g, <AAD_NOTIFICATION_GROUP_ID>, role:notification
+    g, <AAD_ADMIN_GROUP_ID>, role:admin
+
+
+# kubectl apply -f argocd-rbac-cm.yaml
+# kubectl rollout restart deployment argocd-server -n argocd
