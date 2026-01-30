@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: resource-app
+  name: resource
   namespace: argocd
 spec:
   # project: default
@@ -12,7 +12,7 @@ spec:
     path: heml/resource
   destination:
     server: https://kubernetes.default.svc
-    namespace: resource-mgmt
+    namespace: resource-management
   syncPolicy:
     automated:
       prune: true
@@ -20,5 +20,5 @@ spec:
 
 # kubectl apply -f .\Applications.yaml
 # kubectl get applications -n argocd
-# kubectl get pods -n resource-mgmt
-# kubectl get svc -n resource-mgmt
+# kubectl get pods -n resource-management
+# kubectl get svc -n resource-management

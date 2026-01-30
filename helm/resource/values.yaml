@@ -36,3 +36,7 @@ secret:
     AZURE_SQL_PASSWORD: Ritesh@12345
     SECRET_KEY: 00bfd5fadea7a8bcde64453b989e2f58a5f3718db3fb67e84e25aca777fab008
     GMAIL_APP_PASSWORD: vkqskadounrfxjdg
+
+
+# helm template <release-name> <chart-path> --namespace <namespace> -f <values-file-name/path> > <output-file.yaml>
+# helm template resource ./helm/resource --namespace resource-management -f ./helm/resource/values.yaml > resource-helm.yaml

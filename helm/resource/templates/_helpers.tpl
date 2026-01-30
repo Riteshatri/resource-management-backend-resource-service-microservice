@@ -3,5 +3,5 @@ resource
 {{- end }}
 
 {{- define "resource.fullname" -}}
-{{ .Release.Name }}-resource
+{{ .Release.Name }}
 {{- end }}

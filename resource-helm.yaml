@@ -1,0 +1,76 @@
+---
+# Source: resource/templates/secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: resource-secret
+  namespace: resource-management
+type: Opaque
+data:
+  AZURE_SQL_PASSWORD: "Uml0ZXNoQDEyMzQ1"
+  GMAIL_APP_PASSWORD: "dmtxc2thZG91bnJmeGpkZw=="
+  SECRET_KEY: "MDBiZmQ1ZmFkZWE3YThiY2RlNjQ0NTNiOTg5ZTJmNThhNWYzNzE4ZGIzZmI2N2U4NGUyNWFjYTc3N2ZhYjAwOA=="
+---
+# Source: resource/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: resource-config
+  namespace: resource-management
+data:
+  ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+  ALGORITHM: "HS256"
+  AZURE_SQL_DATABASE: "ritserver"
+  AZURE_SQL_SERVER: "ritserver.database.windows.net"
+  AZURE_SQL_USERNAME: "ritserver"
+  GMAIL_USER: "kridhaatri@gmail.com"
+---
+# Source: resource/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: resource-service
+  namespace: resource-management
+spec:
+  type: ClusterIP
+  selector:
+    app: resource
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+---
+# Source: resource/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resource
+  namespace: resource-management
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: resource
+  template:
+    metadata:
+      labels:
+        app: resource
+    spec:
+      containers:
+        - name: resource
+          image: "riteshacr.azurecr.io/resource-service:v5"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: resource-config
+            - secretRef:
+                name: resource-secret
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 200m
+              memory: 256Mi
