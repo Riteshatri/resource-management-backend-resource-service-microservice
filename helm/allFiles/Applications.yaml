@@ -9,7 +9,7 @@ spec:
   source:
     repoURL: https://github.com/Riteshatri/resource-management-backend-resource-service-microservice
     targetRevision: main
-    path: heml/resource
+    path: helm/resource
   destination:
     server: https://kubernetes.default.svc
     namespace: resource-management
